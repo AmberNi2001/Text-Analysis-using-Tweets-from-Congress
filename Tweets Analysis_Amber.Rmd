@@ -1,0 +1,410 @@
+---
+title: "TAD PPOL 6801 - Problem Set 01"
+author: "Amber"
+date: "2025-02-03"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+rm(list=ls())
+setwd("~/Desktop/Github_Projects/Tweets Analysis_Amber") 
+getwd()
+
+# Install pacman if not already installed
+# install.packages("pacman")
+
+# Install necessary packages
+pacman::p_load(tidyverse, ggplot2, quanteda, tidytext) 
+```
+
+## Problem Set 01
+
+I am using the tweets dataset. 
+
+```{r load}
+tweets <- read_csv("tweets_congress.csv")
+```
+
+### Question 1
+
+Take a **sample** of your documents and read them carefully. This sample does not need to be random. Choose documents that are interesting to you or closely related to your theoretical interest. What are your thoughts after reading these documents? What did you learn from the sample? What stood out to you?
+
+#### Filter, subset and read my documents
+
+```{r}
+# filter all tweets from democrats
+tweets_dem <- tweets %>%
+  filter(Party == "D")
+head(tweets_dem)
+
+# Dataset too large. Create a subset.
+set.seed(1) # Ensure we get the same ouput of a randomization
+tweets_dem_sub <- tweets_dem %>%
+  sample_n(50000) # Create a subset of 50000 observations
+
+# randomly read 10 rows
+set.seed(2)
+tweets_dem_sub %>%
+  sample_n(10) 
+```
+From the data side, these documents are long and messy, containing texts and author information. These texts include a lot of emojis, mentions , hash tags, and URLs which can make pre-processing complicated. These also include HTML escape characters like &amp which should be "&" and line breaks (\n\n).
+
+From the content side, after reading the tweets from some of the democrats, I found out they brought up a lot frequently mentioned issues that democrats care about, including "LGBTQIA+", "BorderWall","newest citizen","Covid-19", etc. These relate to political topic like immigration policy, government spending, and civic engagement. We can also see some strong sentiments behind these tweets by looking at words like "useless" and "congrats".
+
+### Question 2
+
+**Tokenize** your documents and **pre-process** them, removing any "extraneous" content you noticed in closely reading a sample of your documents. What content did you remove and why? Are there any preprocessing steps (from class) that you decided not to use? Why?
+
+#### Create a corpus
+```{r}
+# Convert the dataset into a corpus 
+tweets_corpus <- corpus(tweets_dem_sub, text_field = "text")
+summary(tweets_corpus, n =5) # Look at the first 5 documents
+```
+
+#### Tokenize
+```{r}
+# Tokenize the corpus 
+dem_tokens <- tokens(tweets_corpus, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
+  tokens_tolower() %>% # Convert all tokens to lower case
+  tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% # Remove common English stopwords, retweets identifier and frequetly appeared meaningless words
+  tokens_remove(pattern = "#*|@*") %>%  # Remove hashtags and handles
+  tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% # Remove web links
+  tokens_replace(pattern = "*'s|.*'m|.*'re|.*'d|.*'ve|.*'ll|.*n't", replacement = "") %>%
+  tokens_remove(c("amp","$")) %>% # Remove HTML escape characters
+  tokens_wordstem() # Word stemming 
+
+# Look at the first few tokenized texts
+head(dem_tokens)
+```
+
+During my tokenization and preprocessing, I first tokenized my corpus by removing punctuation and numbers and converting all tokens to lowercase. I removed common English stop words like "and" and meaningless words like "mr" that often appear in political contents. I also removed hash tags (#), mentions (@) , re-tweets and website links starting with "https". After I glimpsed the tokens and found out that there are a lot of words "amp" which can be resulted from HTML escape characters like &amp, I removed all "amp". Besides, I used word stemming to reduce duplicated words and reduce the dataset size for faster analysis later on.
+
+I didn't use n-grams because I don't think it makes sense to make all individual tokens into, say, bi-grams as some words might make sense but most of them won't. 
+
+### Question 3
+
+Pick an important **source of variation** in your data (e.g. date, author identity, location, etc.). **Subset** your data along this dimension and create word clouds for each category. e.g. a male vs. female author word cloud, a before and after a particular date word cloud, etc. What differences do you notice in the word clouds?
+
+#### Subset my data along location, tokenize and preprocess 
+```{r}
+# Subset my original dataset by states that are in the West 
+tweets_west <- tweets %>%
+  filter(State == "CA" | State == "WA" | State == "OR" | State == "AK" | State == "HI"
+         | State == "MT" | State == "ID" | State == "WY" | State == "NV" | State == "UT" 
+         | State == "CO" | State == "AZ" | State == "NM")
+
+# Subset my original dataset by states that are in the Northeast 
+tweets_east <- tweets %>%
+  filter(State == "ME" | State == "NH" | State == "VT" | State == "MA" | State == "RI"
+         | State == "CT" | State == "NY" | State == "NJ" | State == "PA")
+
+# Create corpus for both 
+west_corpus <- corpus(tweets_west, text_field = "text")
+east_corpus <- corpus(tweets_east, text_field = "text")
+
+# Tokenize both corpuses 
+
+## West 
+west_tokens <- tokens(west_corpus, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
+  tokens_tolower() %>% # Convert all tokens to lower case
+  tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% # Remove common English stopwords, retweets identifier and frequetly appeared meaningless words
+  tokens_remove(pattern = "#*|@*") %>%  # Remove hashtags and handles
+  tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% # Remove web links
+  tokens_replace(pattern = "*'s|.*'m|.*'re|.*'d|.*'ve|.*'ll|.*n't", replacement = "") %>%
+  tokens_remove(c("amp","$")) %>% # Remove HTML escape characters
+  tokens_wordstem() # Word stemming 
+
+## Northeast
+east_tokens <<- tokens(east_corpus, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
+  tokens_tolower() %>% # Convert all tokens to lower case
+  tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% # Remove common English stopwords, retweets identifier and frequetly appeared meaningless words
+  tokens_remove(pattern = "#*|@*") %>%  # Remove hashtags and handles
+  tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% # Remove web links
+  tokens_replace(pattern = "*'s|.*'m|.*'re|.*'d|.*'ve|.*'ll|.*n't", replacement = "") %>%
+  tokens_remove(c("amp","$")) %>% # Remove HTML escape characters
+  tokens_wordstem() # Word stemming 
+
+# Convert tokens to DFM 
+west_dfm <- west_tokens %>% 
+  dfm()
+
+east_dfm <- east_tokens %>% 
+  dfm()
+
+topfeatures(west_dfm)
+topfeatures(east_dfm)
+
+# I didn't trim my tokens here because it still removed all features - couldn't find a way to figure it out.
+
+```
+
+#### Create word clouds for comparison
+```{r}
+# Load package necessary to create word clouds
+pacman::p_load(quanteda.textplots)
+
+# Create a word cloud for democrats' tweets from the West 
+
+wcWest <- textplot_wordcloud(west_dfm, random_order = FALSE,
+                   rotation = .25, max_words = 100,
+                   min_size = 0.5, max_size = 2.8,
+                   color = RColorBrewer::brewer.pal(8, "Set3"))
+
+# Create a word cloud for democrats' tweets from the Northeast 
+
+wcEast <- textplot_wordcloud(east_dfm, random_order = FALSE,
+                   rotation = .25, max_words = 100,
+                   min_size = 0.5, max_size = 2.8,
+                   color = RColorBrewer::brewer.pal(8, "Set3"))
+```
+From this word cloud, there are generally no major difference between the contents between these two regions. They all mentioned "American" the most often, followed by words like "work", "family" and "community".
+
+### Question 4
+
+**Subset** your data along the same variation and **identify words that discriminate between groups**. You can do this by using **TF-IDF** or create a measure similar to Ban’s article (“How Newspapers Reveal Political Power”).
+
+#### Compute TF-IDF for my data for both groups 
+```{r}
+pacman::p_load(quanteda.textstats)
+
+# Proportional TF and log-scaled IDF for West
+tfidf_west <- west_dfm %>%
+  dfm_tfidf(scheme_tf = "prop", scheme_df = "inversemax")  
+
+# Proportional TF and log-scaled IDF for Northeast
+tfidf_east <- east_dfm %>%
+  dfm_tfidf(scheme_tf = "prop", scheme_df = "inversemax")  
+
+# Get top words for states in the West
+top_west <- textstat_frequency(tfidf_west, n = 10, force = TRUE)  # Top 10 words
+top_west <- top_west %>% select(feature, frequency)
+
+# Get top words for states in the Northeast
+top_east <- textstat_frequency(tfidf_east, n = 10, force = TRUE)  # Top 10 words
+top_east <- top_east %>% select(feature, frequency)
+
+# This gives us top words that are most distinctive for each group based on TF-IDF values.
+
+print(top_west)
+print(top_east)
+```
+
+### Question 5
+
+Create or use an **existing dictionary** to measure a topic of interest (e.g.,sentiment, tone, misinformation). **Label** your documents and **visualize** the prevalence of your classes.
+
+```{r}
+# Here I used VADER as it is useful for sentiment analysis on social media contents like tweets.
+library(vader)
+
+# Change tokens into a character vector
+dem_tokens_v <- unlist(dem_tokens) 
+
+# Get the sentiment for each tokens
+dem_sentiment <- tibble(
+  word = dem_tokens_v,
+  compound_score = sapply(dem_tokens_v, function(w) get_vader(w)[["compound"]])
+)
+
+# Write a function to tidy the results
+get_vader_tidy <- function(dem_tokens_v){
+  get_vader(dem_tokens_v) %>% 
+    tibble(outcomes=names(.), 
+           values=.)
+}  
+
+# Apply VADER to the first 100 comments and store results in a tidy format
+vader_outputs <- map(tweets_dem_sub$text[1:100], get_vader_tidy)
+
+# Bind all outputs into a single data frame and merge with original dataset
+dem_vader <- tweets_dem_sub %>%
+  slice(1:100) %>%   # Keep only the first 1000 rows (matching `vader_outputs`)
+  mutate(vader_output = vader_outputs) %>%   # Attach sentiment results
+  unnest(vader_output) 
+
+# Filter for compound sentiment scores and select relevant columns (text, outcomes and values)
+dem_vader_fil <- dem_vader %>%
+  filter(outcomes == "compound") %>%
+  select(text, outcomes, values)
+head(dem_vader_fil)
+
+# Sort from highest to lowest sentiment score
+sorted_sentiment <- dem_vader_fil %>%
+  arrange(desc(values)) 
+head(sorted_sentiment)
+
+# Label my documents
+sorted_sentiment <- sorted_sentiment %>%
+  mutate(sentiment = case_when(
+    values > 0  ~ "positive",
+    values < 0  ~ "negative",
+    values == 0 ~ "neutral"
+  ))
+
+# Merge labels to my original dataset
+merged_dem_vader <- left_join(dem_vader_fil, sorted_sentiment, by = "text") 
+head(merged_dem_vader)
+
+# Count sentiment classes
+sent_counts <- sorted_sentiment %>%
+  count(sentiment)
+
+# Create a bar plot to visualize the appearance of class
+ggplot(sent_counts, aes(x = sentiment, y = n, fill = sentiment)) +
+  geom_col() +
+  labs(title = "Sentiment Class Distribution across Tweets from Democrats", x = "Sentiment Class", y = "Text Count") +
+  scale_y_continuous(breaks = seq(0, 60, by = 5)) +
+  theme_minimal()
+```
+
+### Question 6
+
+Choose at least 10 documents that clearly (with high probability) represent each class in your classification dictionary (e.g. sports, politics,technology.)
+
+#### Q 6.2
+
+Using **cosine similarity**, find the 10 documents **closest to each reference document** from the ones you read above. Read those. How well does cosine similarity work in identifying similar documents? Try using another distance measure and compare the results. Anything interesting there?
+
+```{r}
+# Arrange with descending compound score
+merged_dem_vader <- merged_dem_vader %>%
+  arrange(desc(values.y))
+
+# Convert to matrix 
+vader_dfm_matrix <- merged_dem_vader %>%
+  corpus() %>%
+  tokens() %>%
+  dfm() %>%
+  as.matrix()
+
+# Extract vectors for reference documents 
+mostpos <- vader_dfm_matrix["text1", ] # most positive
+mostneg <- vader_dfm_matrix["text100", ] # most negative
+
+# Function to calculate cosine similarity
+calculate_cosine_similarity <- function(vec1, vec2) {
+  dot_product <- sum(vec1 * vec2)
+  magn1 <- sqrt(sum(vec1^2))
+  magn2 <- sqrt(sum(vec2^2))
+  return(dot_product / (magn1 * magn2)) 
+}
+
+# [Cosine similarity] Distance and similarity with reference to the most positive one
+cosine_scores_pos <- apply(vader_dfm_matrix, 1, function(text) calculate_cosine_similarity(text, mostpos))
+cosine_results_pos <- data.frame(text = rownames(vader_dfm_matrix), cosine_similarity = cosine_scores_pos)
+
+# Identify the 10 closet documents to the most positive 
+
+top10pos_co <- cosine_results_pos %>%
+  arrange(desc(cosine_similarity)) %>%  # Sort in descending order
+  slice(1:10)
+print(top10pos_co)
+
+# [Cosine similarity] Distance and similarity with reference to the most negative one
+cosine_scores_neg <- apply(vader_dfm_matrix, 1, function(text) calculate_cosine_similarity(text, mostneg))
+cosine_results_neg <- data.frame(text = rownames(vader_dfm_matrix), cosine_similarity = cosine_scores_neg)
+
+# Identify the 10 closet documents to the most negative
+
+top10neg_co <- cosine_results_neg %>%
+  arrange(desc(cosine_similarity)) %>%  # Sort in descending order
+  slice(1:10)
+print(top10neg_co)
+```
+
+**Cosine Similarity** focuses on the direction of text vectors rather than their magnitude, making it useful for comparing documents of different lengths.
+
+```{r}
+# Function to calculate Euclidean distance between two vectors
+calculate_euclidean_distance <- function(vec1, vec2) {
+  ec_distance <- sqrt(sum((vec1 - vec2)^2)) # Euclidean formula 
+  return(ec_distance)
+}
+
+# [Euclidean similarity] Distance and similarity with reference to the most positive one
+eu_scores_pos <- apply(vader_dfm_matrix, 1, function(text) calculate_euclidean_distance(text, mostpos))
+eu_results_pos <- data.frame(text = rownames(vader_dfm_matrix), euclidean_similarity = eu_scores_pos)
+
+# Identify the 10 closet documents to the most positive 
+
+top10pos_eu <- eu_results_pos %>%
+  arrange(desc(euclidean_similarity)) %>%  # Sort in descending order
+  slice(1:10)
+print(top10pos_eu)
+
+# [Euclidean similarity] Distance and similarity with reference to the most negative one
+eu_scores_neg<- apply(vader_dfm_matrix, 1, function(text) calculate_euclidean_distance(text, mostneg))
+eu_results_neg <- data.frame(text = rownames(vader_dfm_matrix), euclidean_similarity = eu_scores_neg)
+
+# Identify the 10 closet documents to the most negative
+
+top10neg_eu <- eu_results_neg %>%
+  arrange(desc(euclidean_similarity)) %>%  # Sort in descending order
+  slice(1:10)
+print(top10neg_eu)
+
+# Combine cosine and Euclidean similarity results for positive reference
+top10pos_combined <- bind_rows(
+  top10pos_co %>% mutate(similarity_type = "cosine"),
+  top10pos_eu %>% mutate(similarity_type = "euclidean")
+) 
+print(top10pos_combined)
+
+# Combine cosine and Euclidean similarity results for negative reference
+top10neg_combined <- bind_rows(
+  top10neg_co %>% mutate(similarity_type = "cosine"),
+  top10neg_eu %>% mutate(similarity_type = "euclidean")
+) 
+print(top10neg_combined)
+```
+
+Using **Euclidean similarity** makes the results totally different, as it measures straight-line distance between two points in space. It focuses on the absolute size of text content in a document.
+
+#### Q 6.3
+
+Now, check these documents **qualitatively**. Look at the top features or **highest TF-IDF terms** in the documents you retrieved. Check **keywords in context**. Would you make any changes to your dictionary based on this analysis? If so, what and why?
+
+```{r}
+# Select the top 10 texts based on the highest cosine similarity scores
+top10_texts_pos <- cosine_results_pos %>%
+  arrange(desc(cosine_similarity)) %>% # Sort the results in descending order of cosine similarity
+  slice(1:10) %>% # Select the top 10 entries
+  pull(text)  # Extract text IDs
+
+# Convert the merged_dem_vader dataframe into a corpus for text analysis
+dem_vader_corpus <- merged_dem_vader %>%
+  corpus()
+
+# Subset the corpus to include only the documents that match the top 10 (most positive) text IDs
+subset_corpus_vadar <- corpus_subset(dem_vader_corpus, docnames(dem_vader_corpus) %in% top10_texts_pos)
+
+# Create a Document-Feature Matrix (DFM) and apply TF-IDF weighting
+tfdif_vader_pos <- dfm(tokens(subset_corpus_vadar)) %>%
+  dfm_tfidf(scheme_tf = "prop", scheme_df = "inversemax")
+
+# Convert the TF-IDF weighted DFM into a data frame
+tfidf_df_pos <- convert(tfdif_vader_pos, to = "data.frame")
+
+# Reshape and sort the top terms by TF-IDF score
+top_tfidf_terms <- tfidf_df_pos  %>%
+  pivot_longer(-doc_id, names_to = "term", values_to = "tfidf") %>%
+  arrange(desc(tfidf)) %>%
+  slice(1:10)  # Select the 10 highest TF-IDF terms
+print(top_tfidf_terms)
+
+# Define key words to search for in the text
+patterns <- c("worth","one","serve","from","wage")
+
+# Tokenize the first 10 texts from the merged_dem_vader dataframe
+vader_tokens_toppos <- merged_dem_vader %>%
+  slice(1:10) %>%
+  corpus(text_field = "text") %>%
+  tokens() 
+
+# Perform keyword-in-context (KWIC) search for the defined patterns within a window of 5 words
+kwic_results_pos <- kwic(vader_tokens_toppos, pattern = patterns, window = 5)
+print(kwic_results_pos)
+```
+I think sentiment analysis here using Vader is a bit weird, as I look at those key words and found out they are actually unrelated to sentiment. Those are more thematic words based on context, since, for example, serve shows strong thematic relevance like public service or civic duty. Therefore, if I would chnage my dictionary, I will change a topic dictionary.
