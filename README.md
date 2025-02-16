@@ -19,7 +19,7 @@ The expected outcomes include uncovering **common themes and discriminative term
 ## How to Use This Repository
 
 If you'd like to **run the analysis** on your own laptop, follow these steps:
-  1. Download the dataset `tweets_congress.csv`.
+  1. Download the dataset `tweets_congress.csv` from https://drive.google.com/file/d/14jMDNp-SF4jBigVsZSrmprp2d2Zq__bL/view?usp=sharing. 
   2. Open RMarkdown `Tweets Analysis_Amber.Rmd`.
   3. Change working directory according to your local path - `setwd("~/path/to/your/local/directory")`.
   4. Access the dataset according to where you put you data in - `tweets <- read_csv("~/path/to/your/data")`.
