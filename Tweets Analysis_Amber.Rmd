@@ -1,14 +1,26 @@
 ---
-title: "Tweets Analysis"
+title: "Texts Analysis using Tweets from Congress"
 author: "Amber"
 date: "2025-02-03"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
+
+# Project Description
+
+This project analyzes tweets from politicians, focused on pre-processing and analyzing textual contents. The project employs various natural language processing techniques - follows a systematic workflow, including:
+
+1. Document sampling
+2. Text preprocessing (tokenization, cleaning, and stemming)
+3. Exploratory analysis using word clouds and TF-IDF to visualize word frequencies andhighlight discriminative terms
+5. Sentiment classification through VADER dictionary to categorize tweets as positive, neutral, or negative
+6. Similarity analysis through cosine similarity to measure thematic consistency
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
 rm(list=ls())
-setwd("~/Desktop/Github_Projects/Tweets Analysis_Amber") 
+setwd("~/Desktop/Github_Projects/Text-Analysis-using-Tweets-from-Congress") 
 getwd()
 
 # Install pacman if not already installed
@@ -18,43 +30,38 @@ getwd()
 pacman::p_load(tidyverse, ggplot2, quanteda, tidytext) 
 ```
 
-## Problem Set 01
-
-I am using the tweets dataset. 
-
 ```{r load}
-tweets <- read_csv("tweets_congress.csv")
+tweets <- read_csv("~/Desktop/Github_Projects/tweets_congress.csv")
 ```
 
-### Question 1
+### Part 1
 
-Take a **sample** of your documents and read them carefully. This sample does not need to be random. Choose documents that are interesting to you or closely related to your theoretical interest. What are your thoughts after reading these documents? What did you learn from the sample? What stood out to you?
+I **took a sample** of my documents and read them carefully. This sample is not random; instead, I chose documents that are particularly interesting to me (**tweets from only democrats**). After reviewing the sample, I reflect on my observations, key takeaways, and any notable patterns or insights that emerge.
 
 #### Filter, subset and read my documents
-
 ```{r}
-# filter all tweets from democrats
+# Filter all tweets from democrats
 tweets_dem <- tweets %>%
   filter(Party == "D")
 head(tweets_dem)
 
-# Dataset too large. Create a subset.
-set.seed(1) # Ensure we get the same ouput of a randomization
+# Dataset too large ; create a subset.
+set.seed(1) # Ensure we get the same output of a randomization
 tweets_dem_sub <- tweets_dem %>%
   sample_n(50000) # Create a subset of 50000 observations
 
-# randomly read 10 rows
+# Randomly read 10 rows
 set.seed(2)
 tweets_dem_sub %>%
   sample_n(10) 
 ```
-From the data side, these documents are long and messy, containing texts and author information. These texts include a lot of emojis, mentions , hash tags, and URLs which can make pre-processing complicated. These also include HTML escape characters like &amp which should be "&" and line breaks (\n\n).
+From the **data** side, these documents are long and messy, containing texts and author information. These texts include a lot of emojis, mentions , hash tags, and URLs which can make pre-processing complicated. These also include HTML escape characters like &amp which should be "&" and line breaks (\n\n).
 
-From the content side, after reading the tweets from some of the democrats, I found out they brought up a lot frequently mentioned issues that democrats care about, including "LGBTQIA+", "BorderWall","newest citizen","Covid-19", etc. These relate to political topic like immigration policy, government spending, and civic engagement. We can also see some strong sentiments behind these tweets by looking at words like "useless" and "congrats".
+From the **content** side, after reading the tweets from some of the democrats, I found out that they brought up a lot frequently mentioned issues that democrats care about, including "LGBTQIA+", "BorderWall","newest citizen","Covid-19", etc. These relate to political topics like immigration policy, government spending, and civic engagement. We can also see some strong sentiments behind these tweets by looking at words like "useless" and "congrats".
 
-### Question 2
+### Part 2
 
-**Tokenize** your documents and **pre-process** them, removing any "extraneous" content you noticed in closely reading a sample of your documents. What content did you remove and why? Are there any preprocessing steps (from class) that you decided not to use? Why?
+I **tokenized** my documents and **pre-processed** them by removing any extraneous content identified during my close reading of a sample. I evaluated which content to remove based on its relevance and impact on the analysis. 
 
 #### Create a corpus
 ```{r}
@@ -63,15 +70,17 @@ tweets_corpus <- corpus(tweets_dem_sub, text_field = "text")
 summary(tweets_corpus, n =5) # Look at the first 5 documents
 ```
 
-#### Tokenize
+#### Tokenization and Pre-processing
 ```{r}
 # Tokenize the corpus 
-dem_tokens <- tokens(tweets_corpus, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
+
+text_clean <- gsub("'s|'m|'re|'d|'ve|'ll|n't|’s|’m|’re|’d|’ve|’ll|n’t", "", tweets_corpus)  # Remove common English contractions and avoid empty spaces being recognized by a token
+
+dem_tokens <- tokens(text_clean, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
   tokens_tolower() %>% # Convert all tokens to lower case
-  tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% # Remove common English stopwords, retweets identifier and frequetly appeared meaningless words
-  tokens_remove(pattern = "#*|@*") %>%  # Remove hashtags and handles
+  tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% # Remove common English stopwords, retweet identifier and frequently appeared meaningless words
+  tokens_remove(pattern = "#*|@*") %>%  # Remove hash tags and handles
   tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% # Remove web links
-  tokens_replace(pattern = "*'s|.*'m|.*'re|.*'d|.*'ve|.*'ll|.*n't", replacement = "") %>%
   tokens_remove(c("amp","$")) %>% # Remove HTML escape characters
   tokens_wordstem() # Word stemming 
 
@@ -79,24 +88,24 @@ dem_tokens <- tokens(tweets_corpus, remove_punct = TRUE, remove_numbers = TRUE) 
 head(dem_tokens)
 ```
 
-During my tokenization and preprocessing, I first tokenized my corpus by removing punctuation and numbers and converting all tokens to lowercase. I removed common English stop words like "and" and meaningless words like "mr" that often appear in political contents. I also removed hash tags (#), mentions (@) , re-tweets and website links starting with "https". After I glimpsed the tokens and found out that there are a lot of words "amp" which can be resulted from HTML escape characters like &amp, I removed all "amp". Besides, I used word stemming to reduce duplicated words and reduce the dataset size for faster analysis later on.
+During my tokenization and preprocessing, I first cleaned the texts in my corpus by **removing common English contractions**. Then, I tokenized by **removing punctuation and numbers** and converting all tokens to **lowercase**. I removed **common English stop words** like "and" and meaningless words like "mr" that often appear in political contents. I also removed **hash tags (#), mentions (@) , re-tweets and website links** starting with "https". After I glimpsed the tokens and found out that there are a lot of words "amp" which can be resulted from **HTML escape characters** like &amp, I removed all "amp". Besides, I used **word stemming** to reduce duplicated words and reduce the dataset size for faster analysis later on.
 
-I didn't use n-grams because I don't think it makes sense to make all individual tokens into, say, bi-grams as some words might make sense but most of them won't. 
+I **didn't use n-grams** because I don't think it makes sense to make all individual tokens into, say, bi-grams as some words might make sense but most of them won't. 
 
-### Question 3
+### Part 3
 
-Pick an important **source of variation** in your data (e.g. date, author identity, location, etc.). **Subset** your data along this dimension and create word clouds for each category. e.g. a male vs. female author word cloud, a before and after a particular date word cloud, etc. What differences do you notice in the word clouds?
+I identified **location** as an important source of variation in my data. I then **subseted** the data along Northeastern and Western states and **created word clouds** for each category. Finally, I examined the differences between the word clouds to identify notable patterns or variations.
 
 #### Subset my data along location, tokenize and preprocess 
 ```{r}
 # Subset my original dataset by states that are in the West 
-tweets_west <- tweets %>%
+tweets_west <- tweets_dem_sub %>%
   filter(State == "CA" | State == "WA" | State == "OR" | State == "AK" | State == "HI"
          | State == "MT" | State == "ID" | State == "WY" | State == "NV" | State == "UT" 
          | State == "CO" | State == "AZ" | State == "NM")
 
 # Subset my original dataset by states that are in the Northeast 
-tweets_east <- tweets %>%
+tweets_east <- tweets_dem_sub %>%
   filter(State == "ME" | State == "NH" | State == "VT" | State == "MA" | State == "RI"
          | State == "CT" | State == "NY" | State == "NJ" | State == "PA")
 
@@ -104,39 +113,44 @@ tweets_east <- tweets %>%
 west_corpus <- corpus(tweets_west, text_field = "text")
 east_corpus <- corpus(tweets_east, text_field = "text")
 
-# Tokenize both corpuses 
+# Tokenize and pre-process both corpuses 
 
 ## West 
-west_tokens <- tokens(west_corpus, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
+
+text_clean_west <- gsub("'s|'m|'re|'d|'ve|'ll|n't|’s|’m|’re|’d|’ve|’ll|n’t", "", west_corpus) # Remove common English contractions and avoid empty spaces being recognized by a token
+
+west_tokens <- tokens(text_clean_west, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
   tokens_tolower() %>% # Convert all tokens to lower case
   tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% # Remove common English stopwords, retweets identifier and frequetly appeared meaningless words
   tokens_remove(pattern = "#*|@*") %>%  # Remove hashtags and handles
   tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% # Remove web links
-  tokens_replace(pattern = "*'s|.*'m|.*'re|.*'d|.*'ve|.*'ll|.*n't", replacement = "") %>%
   tokens_remove(c("amp","$")) %>% # Remove HTML escape characters
   tokens_wordstem() # Word stemming 
 
 ## Northeast
-east_tokens <<- tokens(east_corpus, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
+
+text_clean_east <- gsub("'s|'m|'re|'d|'ve|'ll|n't|’s|’m|’re|’d|’ve|’ll|n’t", "", east_corpus) # Remove common English contractions and avoid empty spaces being recognized by a token
+
+east_tokens <- tokens(text_clean_east, remove_punct = TRUE, remove_numbers = TRUE) %>% # Remove punctuation and numbers 
   tokens_tolower() %>% # Convert all tokens to lower case
   tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% # Remove common English stopwords, retweets identifier and frequetly appeared meaningless words
   tokens_remove(pattern = "#*|@*") %>%  # Remove hashtags and handles
   tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% # Remove web links
-  tokens_replace(pattern = "*'s|.*'m|.*'re|.*'d|.*'ve|.*'ll|.*n't", replacement = "") %>%
   tokens_remove(c("amp","$")) %>% # Remove HTML escape characters
   tokens_wordstem() # Word stemming 
 
-# Convert tokens to DFM 
+# Convert tokens to Document Term Matrix(DFM) and trim
 west_dfm <- west_tokens %>% 
-  dfm()
+  dfm() %>%
+  dfm_trim(min_docfreq = 0.001, max_docfreq = 0.999, docfreq_type = "prop", verbose = TRUE) # useing 0.001 as a document frequency threshold (a frequently used threshold) is too strict
 
 east_dfm <- east_tokens %>% 
-  dfm()
+  dfm() %>%
+  dfm_trim(min_docfreq = 0.001, max_docfreq = 0.999, docfreq_type = "prop", verbose = TRUE)
 
+# Check top features of each DFM
 topfeatures(west_dfm)
 topfeatures(east_dfm)
-
-# I didn't trim my tokens here because it still removed all features - couldn't find a way to figure it out.
 
 ```
 
@@ -159,11 +173,12 @@ wcEast <- textplot_wordcloud(east_dfm, random_order = FALSE,
                    min_size = 0.5, max_size = 2.8,
                    color = RColorBrewer::brewer.pal(8, "Set3"))
 ```
-From this word cloud, there are generally no major difference between the contents between these two regions. They all mentioned "American" the most often, followed by words like "work", "family" and "community".
 
-### Question 4
+From these **word clouds**, there are generally **no major difference** between the contents between these two regions. They all mentioned "American" and "work" the most often, followed by words like "work", "family" , "community" and "trump".
 
-**Subset** your data along the same variation and **identify words that discriminate between groups**. You can do this by using **TF-IDF** or create a measure similar to Ban’s article (“How Newspapers Reveal Political Power”).
+### Part 4
+
+I subseted my data along the same variation and **identified words that differentiate between groups**. To achieve this, I applied **TF-IDF (Term Frequency-Inverse Document Frequency)**. This method **highlighted words that are more distinctive** in one group compared to others. By analyzing these key terms, I gained insights into **how language use varies across different categories** and what words are **most representative** of each group.
 
 #### Compute TF-IDF for my data for both groups 
 ```{r}
@@ -179,10 +194,10 @@ tfidf_east <- east_dfm %>%
 
 # Get top words for states in the West
 top_west <- textstat_frequency(tfidf_west, n = 10, force = TRUE)  # Top 10 words
-top_west <- top_west %>% select(feature, frequency)
+top_west <- top_west %>% select(feature, frequency) # Keeps only the word (feature) and its TF-IDF frequency
 
 # Get top words for states in the Northeast
-top_east <- textstat_frequency(tfidf_east, n = 10, force = TRUE)  # Top 10 words
+top_east <- textstat_frequency(tfidf_east, n = 10, force = TRUE) 
 top_east <- top_east %>% select(feature, frequency)
 
 # This gives us top words that are most distinctive for each group based on TF-IDF values.
@@ -191,26 +206,19 @@ print(top_west)
 print(top_east)
 ```
 
-### Question 5
+Several words appear in both lists with high frequency, suggesting shared themes across both datasets. Words like **“happi” (happy), “celebr” (celebrate), and “honor”** indicate a strong presence of **positive emotions**. Additionally, **“discuss”, “read”, and “hear”** suggest that **engagement with content** — whether through conversation, reading, or listening—is a common theme in both groups.
 
-Create or use an **existing dictionary** to measure a topic of interest (e.g.,sentiment, tone, misinformation). **Label** your documents and **visualize** the prevalence of your classes.
+### Part 5
+
+I **utilized an existing dictionary called VADER** to measure sentiment, tone. I then **labeled** my documents based on the sentiment categories and **visualized** the prevalence of each class to analyze trends and patterns in the data.
 
 ```{r}
 # Here I used VADER as it is useful for sentiment analysis on social media contents like tweets.
 library(vader)
 
-# Change tokens into a character vector
-dem_tokens_v <- unlist(dem_tokens) 
-
-# Get the sentiment for each tokens
-dem_sentiment <- tibble(
-  word = dem_tokens_v,
-  compound_score = sapply(dem_tokens_v, function(w) get_vader(w)[["compound"]])
-)
-
 # Write a function to tidy the results
-get_vader_tidy <- function(dem_tokens_v){
-  get_vader(dem_tokens_v) %>% 
+get_vader_tidy <- function(text_clean){
+  get_vader(text_clean) %>% 
     tibble(outcomes=names(.), 
            values=.)
 }  
@@ -259,13 +267,15 @@ ggplot(sent_counts, aes(x = sentiment, y = n, fill = sentiment)) +
   theme_minimal()
 ```
 
-### Question 6
+The visualization reveals that **the majority of tweets exhibit a positive sentiment** (depicted in blue), significantly outnumbering both neutral (green) and negative (red) tweets. The counts for neutral and negative sentiments are relatively close, each accounting for roughly one-third of the positive sentiment count. This suggests that **Democratic tweets tend to convey more optimistic messages**.
 
-Choose at least 10 documents that clearly (with high probability) represent each class in your classification dictionary (e.g. sports, politics,technology.)
+### Part 6
 
-#### Q 6.2
+I seleced at least 10 documents that clearly, with high probability, represent each class in my sentiment classification dictionary.
 
-Using **cosine similarity**, find the 10 documents **closest to each reference document** from the ones you read above. Read those. How well does cosine similarity work in identifying similar documents? Try using another distance measure and compare the results. Anything interesting there?
+#### Part 6.2
+
+I used **cosine similarity** to identify the **10 documents** that are **most similar** to **a reference document with highest sentiment score** within each class. After reviewing these documents, I evaluated how well cosine similarity captures meaningful similarities between texts. Additionally, I experimented with **Euclidean distance measure** to compare the results and assess whether it provides different or improved document retrieval. This comparison helped determine **the effectiveness of different similarity measures** in identifying related content.
 
 ```{r}
 # Arrange with descending compound score
@@ -364,7 +374,7 @@ Using **Euclidean similarity** makes the results totally different, as it measur
 
 #### Q 6.3
 
-Now, check these documents **qualitatively**. Look at the top features or **highest TF-IDF terms** in the documents you retrieved. Check **keywords in context**. Would you make any changes to your dictionary based on this analysis? If so, what and why?
+I qualitatively analyzed the retrieved documents by examining their **top features** or **highest TF-IDF terms** to understand their most representative words. Additionally, I used **keyword-in-context (KWIC) analysis** to see how these terms appear within the text. Based on this qualitative assessment, I evaluated whether my sentiment dictionary accurately captures the intended themes or if adjustments are necessary. 
 
 ```{r}
 # Select the top 10 texts based on the highest cosine similarity scores
@@ -407,4 +417,4 @@ vader_tokens_toppos <- merged_dem_vader %>%
 kwic_results_pos <- kwic(vader_tokens_toppos, pattern = patterns, window = 5)
 print(kwic_results_pos)
 ```
-I think sentiment analysis here using Vader is a bit weird, as I look at those key words and found out they are actually unrelated to sentiment. Those are more thematic words based on context, since, for example, serve shows strong thematic relevance like public service or civic duty. Therefore, if I would chnage my dictionary, I will change a topic dictionary.
+I think sentiment analysis here using Vader is a bit weird, as I looked at those key words and found out they are actually unrelated to sentiment. Those are more thematic words based on context, since, for example, serve shows strong thematic relevance like public service or civic duty. Therefore, if I would chnage my dictionary, I will change a topic dictionary.
