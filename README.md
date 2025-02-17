@@ -44,8 +44,8 @@ I further **subseted** my dataset by **regions "West" and "Northeastern"** and c
 #### Regional Word Frequency Analysis
 I created **2 word clouds** to compare tweets from Western and Northeastern states, showing no significant differences in key topics, with common themes centered around "American," "work," "family," and "community." Using **TF-IDF analysis**, I identified top words that are most distinctive for each group.
 
-<img width="657" alt="Screenshot 2025-02-16 at 10 56 16 PM" src="https://github.com/user-attachments/assets/8a5aa1c0-2574-48cd-a4b1-c42012806f5f" />
-<img width="651" alt="Screenshot 2025-02-16 at 10 58 59 PM" src="https://github.com/user-attachments/assets/4ce58bda-fe49-4b80-9f9d-7480e50b2ef5" />
+<img width="371" alt="Screenshot 2025-02-16 at 11 00 23 PM" src="https://github.com/user-attachments/assets/671605a4-519f-4035-a279-c405c37766f1" />
+<img width="355" alt="Screenshot 2025-02-16 at 11 00 34 PM" src="https://github.com/user-attachments/assets/ad9e12f7-5e73-4dc7-96f1-3fac1b956a83" />
 
 #### Sentiment Analysis Using VADER
 I used **sentiment labeling using the VADER dictionary** categorized tweets into positive, neutral, and negative sentiment classes. I also created **a bar chart to visualize** the prevalence of my classes, showing positive tweets are the most common type.
