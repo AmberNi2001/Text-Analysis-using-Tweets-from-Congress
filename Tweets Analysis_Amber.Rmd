@@ -30,7 +30,8 @@ getwd()
 pacman::p_load(tidyverse, ggplot2, quanteda, tidytext) 
 ```
 
-```{r load}
+#### Load dataset
+```{r load, results='hide', warning=FALSE, message=FALSE}
 tweets <- read_csv("~/Desktop/Github_Projects/tweets_congress.csv")
 ```
 
@@ -39,7 +40,7 @@ tweets <- read_csv("~/Desktop/Github_Projects/tweets_congress.csv")
 I **took a sample** of my documents and read them carefully. This sample is not random; instead, I chose documents that are particularly interesting to me (**tweets from only democrats**). After reviewing the sample, I reflect on my observations, key takeaways, and any notable patterns or insights that emerge.
 
 #### Filter, subset and read my documents
-```{r}
+```{r, results='hide', warning=FALSE, message=FALSE}
 # Filter all tweets from democrats
 tweets_dem <- tweets %>%
   filter(Party == "D")
@@ -55,7 +56,7 @@ set.seed(2)
 tweets_dem_sub %>%
   sample_n(10) 
 ```
-From the **data** side, these documents are long and messy, containing texts and author information. These texts include a lot of emojis, mentions , hash tags, and URLs which can make pre-processing complicated. These also include HTML escape characters like &amp which should be "&" and line breaks (\n\n).
+From the **data** side, these documents are long and messy, containing texts and author information. These texts include a lot of emojis, mentions , hash tags, and URLs which can make pre-processing complicated. These also include HTML escape characters like &amp which should be "&" and line breaks.
 
 From the **content** side, after reading the tweets from some of the democrats, I found out that they brought up a lot frequently mentioned issues that democrats care about, including "LGBTQIA+", "BorderWall","newest citizen","Covid-19", etc. These relate to political topics like immigration policy, government spending, and civic engagement. We can also see some strong sentiments behind these tweets by looking at words like "useless" and "congrats".
 
@@ -251,10 +252,6 @@ sorted_sentiment <- sorted_sentiment %>%
     values == 0 ~ "neutral"
   ))
 
-# Merge labels to my original dataset
-merged_dem_vader <- left_join(dem_vader_fil, sorted_sentiment, by = "text") 
-head(merged_dem_vader)
-
 # Count sentiment classes
 sent_counts <- sorted_sentiment %>%
   count(sentiment)
@@ -279,13 +276,25 @@ I used **cosine similarity** to identify the **10 documents** that are **most si
 
 ```{r}
 # Arrange with descending compound score
-merged_dem_vader <- merged_dem_vader %>%
-  arrange(desc(values.y))
+# sorted_sentiment <- sorted_sentiment %>%
+#  arrange(desc(values))
+
+# Convert to corpus
+vader_corpus <- corpus(sorted_sentiment)
+
+# Clean to corpus
+vader_clean <- gsub("'s|'m|'re|'d|'ve|'ll|n't|’s|’m|’re|’d|’ve|’ll|n’t", "", vader_corpus)
 
 # Convert to matrix 
-vader_dfm_matrix <- merged_dem_vader %>%
-  corpus() %>%
-  tokens() %>%
+vader_dfm_matrix <- vader_clean %>%
+  tokens(remove_punct = TRUE, remove_numbers = TRUE) %>%
+    tokens_tolower() %>% #
+    tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% 
+    tokens_remove(pattern = "#*|@*") %>%  
+    tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% 
+    tokens_remove(c(":", "/")) %>% 
+    tokens_remove(c("amp","$")) %>% 
+    tokens_wordstem() %>%
   dfm() %>%
   as.matrix()
 
@@ -384,15 +393,27 @@ top10_texts_pos <- cosine_results_pos %>%
   pull(text)  # Extract text IDs
 
 # Convert the merged_dem_vader dataframe into a corpus for text analysis
-dem_vader_corpus <- merged_dem_vader %>%
-  corpus()
+# dem_vader_corpus <- sorted_sentiment %>%
+#  corpus()
 
 # Subset the corpus to include only the documents that match the top 10 (most positive) text IDs
-subset_corpus_vadar <- corpus_subset(dem_vader_corpus, docnames(dem_vader_corpus) %in% top10_texts_pos)
+subset_corpus_vadar <- corpus_subset(vader_clean, docnames(vader_clean) %in% top10_texts_pos)
+
+tfdif_vader_pos <- subset_corpus_vadar %>%
+  tokens(remove_punct = TRUE, remove_numbers = TRUE) %>%
+    tokens_tolower() %>% #
+    tokens_remove(c(stopwords("en"), "madam", "mr", "today","rt")) %>% 
+    tokens_remove(pattern = "#*|@*") %>%  
+    tokens_remove(pattern = "^https://.*", valuetype = "regex") %>% 
+    tokens_remove(c(":", "/")) %>% 
+    tokens_remove(c("amp","$")) %>% 
+    tokens_wordstem() %>%
+  dfm() %>%
+  dfm_tfidf(scheme_tf = "prop", scheme_df = "inversemax")
 
 # Create a Document-Feature Matrix (DFM) and apply TF-IDF weighting
-tfdif_vader_pos <- dfm(tokens(subset_corpus_vadar)) %>%
-  dfm_tfidf(scheme_tf = "prop", scheme_df = "inversemax")
+# tfdif_vader_pos <- dfm(tokens(subset_corpus_vadar)) %>%
+#  dfm_tfidf(scheme_tf = "prop", scheme_df = "inversemax")
 
 # Convert the TF-IDF weighted DFM into a data frame
 tfidf_df_pos <- convert(tfdif_vader_pos, to = "data.frame")
@@ -405,10 +426,10 @@ top_tfidf_terms <- tfidf_df_pos  %>%
 print(top_tfidf_terms)
 
 # Define key words to search for in the text
-patterns <- c("worth","one","serve","from","wage")
+patterns <- c("time","serve","heart","survivor","remember")
 
 # Tokenize the first 10 texts from the merged_dem_vader dataframe
-vader_tokens_toppos <- merged_dem_vader %>%
+vader_tokens_toppos <- sorted_sentiment %>%
   slice(1:10) %>%
   corpus(text_field = "text") %>%
   tokens() 
