@@ -44,8 +44,13 @@ I further **subseted** my dataset by **regions "West" and "Northeastern"** and c
 #### Regional Word Frequency Analysis
 I created **2 word clouds** to compare tweets from Western and Northeastern states, showing no significant differences in key topics, with common themes centered around "American," "work," "family," and "community." Using **TF-IDF analysis**, I identified top words that are most distinctive for each group.
 
+<img width="657" alt="Screenshot 2025-02-16 at 10 56 16 PM" src="https://github.com/user-attachments/assets/8a5aa1c0-2574-48cd-a4b1-c42012806f5f" />
+<img width="651" alt="Screenshot 2025-02-16 at 10 58 59 PM" src="https://github.com/user-attachments/assets/4ce58bda-fe49-4b80-9f9d-7480e50b2ef5" />
+
 #### Sentiment Analysis Using VADER
 I used **sentiment labeling using the VADER dictionary** categorized tweets into positive, neutral, and negative sentiment classes. I also created **a bar chart to visualize** the prevalence of my classes, showing positive tweets are the most common type.
+
+<img width="724" alt="Screenshot 2025-02-16 at 10 58 02 PM" src="https://github.com/user-attachments/assets/418f9adf-7bdd-410c-967d-abdd96c3e28f" />
 
 #### Text Similarity Using Cosine Distance and Euclidean Distance
 I extracted tweets with the most positive and most negative sentiment scores, as identified by the VADER sentiment analysis model, and used them as reference points. Then, I computed the **cosine similarity** between each tweet and the reference tweets. The top 10 tweets with the highest similarity scores were retrieved. I also computed **Euclidean distance** between the reference tweets and all other tweets in the dataset. The top 10 tweets with the smallest Euclidean distance were retrieved.
