@@ -12,7 +12,7 @@ This project analyzes **tweets from polititians**, focused on pre-processing and
 The repository **includes**: 
 1. Raw tweets data `.csv`
 2. R Markdown `.rmd`
-3. Output `.html`
+3. Output `.pdf`
 
 The expected outcomes include uncovering **common themes and discriminative terms** in political language, detecting **sentiment patterns** across different politicians and events, and analyzing **linguistic differences** between political parties. Through these analyses, this project aims to provide deeper insights into how politicians craft their messages and engage with the public on social media.
 
